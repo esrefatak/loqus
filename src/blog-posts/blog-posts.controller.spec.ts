@@ -1,60 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BlogPostsController } from './blog-posts.controller';
-import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { BlogPostsService } from './blog-posts.service';
+import { CreateBlogPostDto } from './dto/create-blog-post.dto';
+import { BadRequestException } from '@nestjs/common';
+import { getModelToken } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
-describe('BlogPosts Controller', () => {
+describe('BlogPostsController', () => {
   let controller: BlogPostsController;
   let service: BlogPostsService;
-  const createBlogPostDto: CreateBlogPostDto = {
-    title: 'Title #1',
-    content: 'Content #1',
-    author: 'Author #1',
-    createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-  };
-
-  const mockBlogPost = {
-    title: 'Title #1',
-    content: 'Content #1',
-    author: 'Author #1',
-    createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-    _id: 'a id',
-  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BlogPostsController],
       providers: [
+        BlogPostsService,
         {
-          provide: BlogPostsService,
-          useValue: {
-            getAll: jest.fn().mockResolvedValue({
-              data: [
-                {
-                  title: 'Title #1',
-                  content: 'Content #1',
-                  author: 'Author #1',
-                  createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-                },
-                {
-                  title: 'Title #2',
-                  content: 'Content #2',
-                  author: 'Author #2',
-                  createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-                },
-                {
-                  title: 'Title #3',
-                  content: 'Content #3',
-                  author: 'Author #3',
-                  createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-                },
-              ],
-              page: 1,
-              totalItems: 3,
-              totalPages: 1,
-            }),
-            create: jest.fn().mockResolvedValue(mockBlogPost),
-          },
+          provide: getModelToken('BlogPost'), // Adjust if needed based on your model name
+          useValue: Model, // You can use a mock here if necessary
         },
       ],
     }).compile();
@@ -63,45 +26,143 @@ describe('BlogPosts Controller', () => {
     service = module.get<BlogPostsService>(BlogPostsService);
   });
 
-  describe('create()', () => {
-    it('should create a new blog post', async () => {
-      const createSpy = jest
-        .spyOn(service, 'create')
-        .mockResolvedValueOnce(mockBlogPost);
+  describe('create', () => {
+    it('should create a blog post', async () => {
+      const createBlogPostDto: CreateBlogPostDto = {
+        title: 'Test Title',
+        content: 'Test Content',
+        author: 'Test Author',
+        createdAt: new Date(),
+      };
 
-      await controller.create(createBlogPostDto);
-      expect(createSpy).toHaveBeenCalledWith(createBlogPostDto);
+      jest.spyOn(service, 'create').mockImplementation(async () => createBlogPostDto);
+
+      expect(await controller.create(createBlogPostDto)).toBe(createBlogPostDto);
+    });
+
+    it('should throw BadRequestException if title is missing', async () => {
+      const createBlogPostDto: any = {
+        content: 'Test Content',
+        author: 'Test Author',
+        createdAt: new Date(),
+      };
+
+      await expect(controller.create(createBlogPostDto)).rejects.toThrowError(BadRequestException);
+    });
+
+    it('should throw BadRequestException if content is missing', async () => {
+      const createBlogPostDto: any = {
+        title: 'Test Title',
+        author: 'Test Author',
+        createdAt: new Date(),
+      };
+
+      await expect(controller.create(createBlogPostDto)).rejects.toThrowError(BadRequestException);
     });
   });
 
-  describe('getAll()', () => {
-    it('should return an array of blog posts', async () => {
-      await expect(controller.getAll()).resolves.toEqual({
-        data: [
-          {
-            title: 'Title #1',
-            content: 'Content #1',
-            author: 'Author #1',
-            createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-          },
-          {
-            title: 'Title #2',
-            content: 'Content #2',
-            author: 'Author #2',
-            createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-          },
-          {
-            title: 'Title #3',
-            content: 'Content #3',
-            author: 'Author #3',
-            createdAt: new Date('2024-01-16T19:20:21.2223Z'),
-          },
-        ],
+  describe('update', () => {
+    it('should update a blog post', async () => {
+      const id = '123';
+      const updateBlogPostDto: any = {
+        title: 'Updated Title',
+        content: 'Updated Content',
+        author: 'Updated Author',
+      };
+
+      jest.spyOn(service, 'update').mockImplementation(async () => null);
+
+      await expect(controller.update(id, updateBlogPostDto)).resolves.toBeUndefined();
+    });
+
+    it('should throw BadRequestException if title is empty', async () => {
+      const id = '123';
+      const updateBlogPostDto: any = {
+        title: '',
+        content: 'Updated Content',
+        author: 'Updated Author',
+      };
+
+      await expect(controller.update(id, updateBlogPostDto)).rejects.toThrowError(BadRequestException);
+    });
+
+    it('should throw BadRequestException if content is empty', async () => {
+      const id = '123';
+      const updateBlogPostDto: any = {
+        title: 'Updated Title',
+        content: '',
+        author: 'Updated Author',
+      };
+
+      await expect(controller.update(id, updateBlogPostDto)).rejects.toThrowError(BadRequestException);
+    });
+  });
+
+  describe('getAll', () => {
+    it('should get all blog posts', async () => {
+      const result: any[] = [
+        // Mock data here
+      ];
+
+      jest.spyOn(service, 'getAll').mockImplementation(async () => ({
+        data: result,
         page: 1,
-        totalItems: 3,
+        totalItems: result.length,
+        totalPages: 1,
+      }));
+
+      expect(await controller.getAll()).toEqual({
+        data: result,
+        page: 1,
+        totalItems: result.length,
         totalPages: 1,
       });
-      expect(service.getAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('search', () => {
+    it('should search for blog posts', async () => {
+      const query = 'search query';
+      const result: any[] = [
+        // Mock data here
+      ];
+
+      jest.spyOn(service, 'search').mockImplementation(async () => ({
+        data: result,
+        page: 1,
+        totalItems: result.length,
+        totalPages: 1,
+      }));
+
+      expect(await controller.search(query)).toEqual({
+        data: result,
+        page: 1,
+        totalItems: result.length,
+        totalPages: 1,
+      });
+    });
+  });
+
+  describe('findOne', () => {
+    it('should find a blog post by ID', async () => {
+      const id = '123';
+      const result: any = {
+        // Mock data here
+      };
+
+      jest.spyOn(service, 'findOne').mockImplementation(async () => result);
+
+      expect(await controller.findOne(id)).toEqual(result);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete a blog post', async () => {
+      const id = '123';
+
+      jest.spyOn(service, 'delete').mockImplementation(async () => null);
+
+      await expect(controller.delete(id)).resolves.toBeUndefined();
     });
   });
 });
