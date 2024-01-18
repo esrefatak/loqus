@@ -54,8 +54,6 @@ export class BlogPostsController {
             throw new BadRequestException("Content can not be empty")
         }
 
-        console.log(JSON.stringify(updateBlogPostDto));
-
         await this.blogPostsService.update(id, updateBlogPostDto);
     } catch (error) {
         console.error('Error (update):', JSON.stringify(error));
