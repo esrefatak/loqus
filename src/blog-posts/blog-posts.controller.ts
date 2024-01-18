@@ -46,8 +46,17 @@ export class BlogPostsController {
             throw new NotFoundException("Blog entry not found");
         }
 
-        const updated = await this.blogPostsService.update(id, updateBlogPostDto);
-        return updated;
+        if ('title' in updateBlogPostDto && !updateBlogPostDto.title?.trim()){
+            throw new BadRequestException("Title can not be empty")
+        }
+
+        if ('content' in updateBlogPostDto && !updateBlogPostDto.content?.trim()){
+            throw new BadRequestException("Content can not be empty")
+        }
+
+        console.log(JSON.stringify(updateBlogPostDto));
+
+        await this.blogPostsService.update(id, updateBlogPostDto);
     } catch (error) {
         console.error('Error (update):', JSON.stringify(error));
         throw error;
